@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.easydevelop.business.domain.User;
 import org.easydevelop.business.service.UserServceImpl;
-import org.eclipse.jdt.internal.core.Assert;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,10 +49,10 @@ public class BusinessTest {
 		userService.updateUser(user3);
 		
 		User findUser = userService.findUser(user3.getUserId());
-		Assert.isTrue(findUser.getName().equals("user3-new"));
+		Assert.assertTrue(findUser.getName().equals("user3-new"));
 		
 		List<User> findAllUsers = userService.findAllUsers();
-		Assert.isTrue(findAllUsers.size() == 2);
+		Assert.assertTrue(findAllUsers.size() == 2);
 		
 	}
 	

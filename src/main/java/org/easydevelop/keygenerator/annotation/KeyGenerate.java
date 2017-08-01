@@ -21,6 +21,10 @@ public @interface KeyGenerate {
 	 */
 	String[] defaultKeyEls() default {};
 
+	/**
+	 * SpEl referent to a instance that implements KeyGenerateStrategy
+	 * @return
+	 */
 	String defaultStrategy() default "";
 	
 	/**

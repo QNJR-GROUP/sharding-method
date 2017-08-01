@@ -1,6 +1,7 @@
 package org.easydevelop;
 
 import org.easydevelop.aggregation.aspect.AggregationAspect;
+import org.easydevelop.common.SpElHelper;
 import org.easydevelop.keygenerator.aspect.KeyGenerateAspect;
 import org.easydevelop.sharding.ShardingRoutingDataSource;
 import org.easydevelop.sharding.aspect.ShardingAspect;
@@ -16,23 +17,28 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 public class ShardingConfiguaration {
 
 	@Bean
-	public KeyGenerateAspect getKeyGenerateAspect(){
+	public KeyGenerateAspect keyGenerateAspect(){
 		return new KeyGenerateAspect();
 	}
 	
 	@Bean
-	public ShardingRoutingDataSource getRoutingDataSource(){
+	public ShardingRoutingDataSource routingDataSource(){
 		return new ShardingRoutingDataSource();
 	}
 	
 	@Bean
-	public ShardingAspect getShardingAspect(){
+	public ShardingAspect shardingAspect(){
 		return new ShardingAspect();
 	}
 	
 	@Bean
-	public AggregationAspect getAggregationAspect(){
+	public AggregationAspect aggregationAspect(){
 		return new AggregationAspect();
+	}
+	
+	@Bean
+	public SpElHelper spElHelper(){
+		return new SpElHelper();
 	}
 	
 }

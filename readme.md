@@ -2,7 +2,7 @@
 
 总的来说，DBProxy，Sql/DAO层的Sharding方案都希望提供一个屏蔽底层Sharding逻辑的解决方案，然而，这仅仅只是一个美丽的目标。因种种原因，这些层次的Sharding方案都无法提供跟原生数据库一样的功能（ACID特性、SQL支持等）。
 
-更为合理的Sharding出发点应该在Service层，由Service层的信息决定Sharding的走向.无论大家赞同与否，至少本框架能带给大家一些新的Sharding思路。
+更为合理的Sharding出发点应该在Service层，由Service层的信息决定Sharding的走向.
 
 Service层Sharding的优劣势
 优势：
@@ -161,5 +161,5 @@ Service层Sharding的优劣势
 	}
 
 
-本框架才刚刚起步，因此代码及文档依然有待优化，更多使用的细节请大家参考UT里的案例，更多实现的细节请自行研究代码
+更多使用的细节请大家参考UT里的案例，更多实现的细节请自行研究代码
     

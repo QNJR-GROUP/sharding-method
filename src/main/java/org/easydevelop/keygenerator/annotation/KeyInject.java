@@ -21,6 +21,10 @@ public @interface KeyInject {
 	 */
 	String[] keyEls() default {};
 
+	/**
+	 * SpEl referent to a instance that implements KeyGenerateStrategy
+	 * @return
+	 */
 	String strategy() default "";
 	
 	/**

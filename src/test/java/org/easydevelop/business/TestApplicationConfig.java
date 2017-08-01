@@ -2,6 +2,8 @@ package org.easydevelop.business;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.sql.DataSource;
@@ -31,10 +33,10 @@ import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 @ComponentScan("org.easydevelop.business")
 public class TestApplicationConfig {
 	
-	public static final String UPDATE_COUNT_ADD = "UPDATE_COUNT_ADD";
-	public static final String BY_USER_ID_MOD = "byUserIdMod";
-	public static final String INT_INCREASE = "intIncrease";
-	public static final String AGGREGATION_USER_ORDER_BY_USER_ID = "AGGREGATION_USER_ORDER_BY_USER_ID";
+	public static final String UPDATE_COUNT_ADD = "@aggUpdateCountAdd";
+	public static final String BY_USER_ID_MOD = "@modUserId";
+	public static final String INT_INCREASE = "@intIncrease";
+	public static final String AGGREGATION_USER_ORDER_BY_USER_ID = "@aggOrderByUserId";
 
 	@Bean
 	public DataSourceSet getDataSourceSet(){
@@ -58,23 +60,19 @@ public class TestApplicationConfig {
 	}
 	
 	@Bean
-	public JdbcTemplate getJdbcTemplate(ShardingRoutingDataSource dataSource){
+	public JdbcTemplate jdbcTemplate(ShardingRoutingDataSource dataSource){
 		return new JdbcTemplate(dataSource);
 	}
 	
 	@Bean
-	public DataSourceTransactionManager getTransactionManager(ShardingRoutingDataSource dataSource){
+	public DataSourceTransactionManager transactionManager(ShardingRoutingDataSource dataSource){
 		DataSourceTransactionManager dataSourceTransactionManager = new DataSourceTransactionManager(dataSource);
 		return dataSourceTransactionManager;
 	}
 	
 	@Bean
-	public ShardingStrategy getShardingStrategy(){
+	public ShardingStrategy modUserId(){
 		return new ShardingStrategy() {
-			@Override
-			public String getStrategyName() {
-				return BY_USER_ID_MOD;
-			}
 
 			@Override
 			public int select(Object[] shardingMetadata, int datasourceSize) {
@@ -85,15 +83,10 @@ public class TestApplicationConfig {
 	}
 	
 	@Bean
-	public KeyGenerateStrategy getKeyGenerateStrategy(){
+	public KeyGenerateStrategy intIncrease(){
 		return new KeyGenerateStrategy() {
 			
 			AtomicInteger atomicInteger = new AtomicInteger(0);
-			
-			@Override
-			public String getStrategyName() {
-				return INT_INCREASE;
-			}
 			
 			@Override
 			public Object[] generateKey(Object[] metadata) {
@@ -104,28 +97,23 @@ public class TestApplicationConfig {
 	}
 	
 	@Bean
-	public AggregationStrategy geAggregationStrategy(){
-		return new AggregationStrategy() {
-			@Override
-			public String getStrategyName() {
-				return AGGREGATION_USER_ORDER_BY_USER_ID;
-			}
+	public AggregationStrategy<List<User>,List<User>> aggOrderByUserId(){
+		return new AggregationStrategy<List<User>,List<User>>() {
 
 			@Override
-			public Object aggregation(List<Object> subFutrueList) {
-				@SuppressWarnings("rawtypes")
-				List raw = subFutrueList;
-				@SuppressWarnings("unchecked")
-				List<List<User>> listUserList = raw;
+			public List<User> aggregation(List<Future<List<User>>> subFutrueList) {
 				
-				ArrayList<User> userList = new ArrayList<>();
-				for(List<User> list:listUserList){
-					userList.addAll(list);
-				}
-				
-				userList.sort((first,second)->Integer.compare(first.getUserId(), second.getUserId()));
-				
-				return userList;
+				List<User> result = new ArrayList<>();
+				subFutrueList.forEach(future->{
+					try {
+						List<User> list = future.get();
+						result.addAll(list);
+					} catch (Exception e) {
+						throw new RuntimeException(e);
+					}
+				});
+				result.sort((first,second)->Integer.compare(first.getUserId(), second.getUserId()));
+				return result;
 			}
 			
 		};
@@ -134,28 +122,21 @@ public class TestApplicationConfig {
 	
 	
 	@Bean
-	public AggregationStrategy geAggregationStrategy2(){
-		return new AggregationStrategy() {
-			@Override
-			public String getStrategyName() {
-				return UPDATE_COUNT_ADD;
-			}
+	public AggregationStrategy<Integer,Integer> aggUpdateCountAdd(){
+		return new AggregationStrategy<Integer,Integer>() {
 
 			@Override
-			public Object aggregation(List<Object> subFutrueList) {
-				@SuppressWarnings("rawtypes")
-				List raw = subFutrueList;
-				@SuppressWarnings("unchecked")
-				List<Integer> listUserList = raw;
+			public Integer aggregation(List<Future<Integer>> subFutrueList) {
 				
-				int result = 0;
-				for(Integer count:listUserList){
-					result += count.intValue();
-				}
-				
-				return result;
+				AtomicInteger count = new AtomicInteger(0);
+				subFutrueList.forEach(future->{try {
+					Integer integer = future.get();
+					count.addAndGet(integer);
+				} catch (InterruptedException | ExecutionException e) {
+					throw new RuntimeException(e);
+				}});
+				return count.get();
 			}
-			
 		};
 		
 	}

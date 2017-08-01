@@ -1,31 +1,23 @@
 package org.easydevelop.sharding.aspect;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
-import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.easydevelop.common.SpElHelper;
 import org.easydevelop.sharding.ShardingRoutingDataSource;
 import org.easydevelop.sharding.annotation.Sharding;
 import org.easydevelop.sharding.annotation.ShardingMethod;
 import org.easydevelop.sharding.strategy.ShardingStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
-import org.springframework.expression.Expression;
-import org.springframework.expression.ExpressionParser;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-
-import com.gs.collections.impl.map.mutable.ConcurrentHashMap;
 
 /** 
 * @author xudeyou 
@@ -34,27 +26,12 @@ import com.gs.collections.impl.map.mutable.ConcurrentHashMap;
 @Order(-1)
 public class ShardingAspect {
 	
-	private ExpressionParser parser = new SpelExpressionParser();
-	
-	@Autowired(required = false)
-	private List<ShardingStrategy> listStrategy = Collections.emptyList();;
 	
 	@Autowired
 	private ShardingRoutingDataSource routingDataSource;
 	
-	private Map<String,ShardingStrategy> mapStrategy;
-	
-	@PostConstruct
-	private void init(){
-		mapStrategy = new HashMap<>(listStrategy.size());
-		for(ShardingStrategy strategy:listStrategy){
-			ShardingStrategy orign = mapStrategy.put(strategy.getStrategyName(), strategy);
-			if(orign != null){
-				throw new RuntimeException("same name sharding-strategy exsist!");
-			}
-		}
-	}
-	
+	@Autowired
+	private SpElHelper spElHelper;
 	
 	@Around("@annotation(shardingMethod)")
 	public Object around(ProceedingJoinPoint jp,ShardingMethod shardingMethod) throws Throwable{
@@ -111,7 +88,7 @@ public class ShardingAspect {
 	}
 
 	private int selectDataSource(String strategyStr,Object[] metaData,int datasourceSize) {
-		ShardingStrategy strategy = mapStrategy.get(strategyStr);
+		ShardingStrategy strategy = spElHelper.getValue(strategyStr);
 		if(strategy == null){
 			throw new RuntimeException("can not find specifc Sharding strategy:" + strategyStr);
 		}
@@ -123,22 +100,12 @@ public class ShardingAspect {
 	private Object[] getElsValues(String[] keyEls, LinkedHashMap<String, Object> mapArgs) {
 		Object[] result = new Object[keyEls.length];
 		for(int i = 0; i < keyEls.length; i++){
-			Expression exp = getExpression(keyEls[i]);
-			result[i] = exp.getValue(mapArgs);
+			result[i] = spElHelper.getValue(keyEls[i], mapArgs);
 		}
 		return result;
 	}
 
 
-	private ConcurrentHashMap<String,Expression> mapExpression = new ConcurrentHashMap<>();
-	private Expression getExpression(String expressionStr) {
-		Expression expression = mapExpression.get(expressionStr);
-		if(expression == null){
-			expression = parser.parseExpression(expressionStr);
-			mapExpression.put(expressionStr, expression);
-		} 
-		return expression;
-	}
 
 
 	private LinkedHashMap<String, Object> getArgsLinkedHashMap(String[] parameterNames, Object[] args) {

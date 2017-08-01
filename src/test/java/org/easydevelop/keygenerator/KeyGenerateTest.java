@@ -27,7 +27,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Configuration
 public class KeyGenerateTest {
 	
-	@KeyGenerate(defaultKeyEls={"[order].orderId"},defaultStrategy="intGenerator")
+	@KeyGenerate(defaultKeyEls={"[order].orderId"},defaultStrategy="@intGenerator")
 	@Service
 	public static class KeyTest{
 		
@@ -42,12 +42,12 @@ public class KeyGenerateTest {
 			return orderId;
 		}
 		
-		@KeyInject(keyEls="[testUser].name",strategy="stringGenerator")
+		@KeyInject(keyEls="[testUser].name",strategy="@stringGenerator")
 		public String strParameterFieldInject(User testUser){
 			return testUser.getName();
 		}
 		
-		@KeyInject(keyEls={"[testUser].userId","[testUser].name"},strategy="multiFieldGenerator")
+		@KeyInject(keyEls={"[testUser].userId","[testUser].name"},strategy="@multiFieldGenerator")
 		public void multiParameterFieldInject(User testUser){
 		}
 		
@@ -56,22 +56,18 @@ public class KeyGenerateTest {
 			return order.getOrderId();
 		}
 		
-		@KeyInject(keyEls="[testUser].name",strategy="stringGenerator",strategyMetadataEls="[testUser].userId")
+		@KeyInject(keyEls="[testUser].name",strategy="@stringGenerator",strategyMetadataEls="[testUser].userId")
 		public String metadataCheck(User testUser){
 			return testUser.getName();
 		}
 		
 	}
 	
-	@Service
+	public static final String INT_GENERATOR = "intGenerator";
+	@Service(INT_GENERATOR)
 	public static class IntKeyGenerateStrategy implements KeyGenerateStrategy{
 		
 		AtomicInteger atomInt = new AtomicInteger(0);
-
-		@Override
-		public String getStrategyName() {
-			return "intGenerator";
-		}
 
 		@Override
 		public Object[] generateKey(Object[] metaData) {
@@ -79,15 +75,11 @@ public class KeyGenerateTest {
 		}
 	}
 	
-	@Service
+	public static final String STRING_GENERATOR = "stringGenerator";
+	@Service(STRING_GENERATOR)
 	public static class StringKeyGenerateStrategy implements KeyGenerateStrategy{
 		
 		AtomicInteger atomInt = new AtomicInteger(0);
-
-		@Override
-		public String getStrategyName() {
-			return "stringGenerator";
-		}
 
 		@Override
 		public Object[] generateKey(Object[] metaData) {
@@ -99,15 +91,11 @@ public class KeyGenerateTest {
 		}
 	}
 	
-	@Service
+	public static final String MULTI_FIELD_GENERATOR = "multiFieldGenerator";
+	@Service(MULTI_FIELD_GENERATOR)
 	public static class MultiFiledKeyGenerateStrategy implements KeyGenerateStrategy{
 		
 		AtomicInteger atomInt = new AtomicInteger(0);
-
-		@Override
-		public String getStrategyName() {
-			return "multiFieldGenerator";
-		}
 
 		@Override
 		public Object[] generateKey(Object[] metaData) {

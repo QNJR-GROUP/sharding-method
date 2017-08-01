@@ -27,7 +27,7 @@ public @interface Sharding {
 	String[] defaultKeyEls() default {};
 	
 	/**
-	 * declare the default sharding strategy name
+	 * SpEl referent to a instance that implements ShardingStrategy
 	 * @return
 	 */
 	String defaultStrategy() default "";

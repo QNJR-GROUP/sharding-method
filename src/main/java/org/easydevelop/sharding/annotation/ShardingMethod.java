@@ -28,8 +28,7 @@ public @interface ShardingMethod {
 	String[] keyNameEls() default {};
 	
 	/**
-	 * declare the sharding strategy name
-	 * if not specified,use the default values declare in the class
+	 * SpEl referent to a instance that implements ShardingStrategy
 	 * @return
 	 */
 	String strategy() default "";

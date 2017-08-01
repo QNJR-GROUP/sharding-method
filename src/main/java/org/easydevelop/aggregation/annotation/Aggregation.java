@@ -12,6 +12,10 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface Aggregation {
 	
+	/**
+	 * SpEl referent to a instance that implements AggregationStrategy
+	 * @return
+	 */
 	String defaultStrategy() default "";
 
 	String defaultDsSet() default "";

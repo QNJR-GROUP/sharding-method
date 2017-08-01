@@ -1,29 +1,19 @@
 package org.easydevelop.keygenerator.aspect;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.PostConstruct;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.easydevelop.common.SpElHelper;
 import org.easydevelop.keygenerator.annotation.KeyGenerate;
 import org.easydevelop.keygenerator.annotation.KeyInject;
 import org.easydevelop.keygenerator.strategy.KeyGenerateStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
-import org.springframework.expression.Expression;
-import org.springframework.expression.ExpressionParser;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-
-import com.gs.collections.impl.map.mutable.ConcurrentHashMap;
 
 /** 
 * @author xudeyou 
@@ -32,25 +22,8 @@ import com.gs.collections.impl.map.mutable.ConcurrentHashMap;
 @Order(-2)
 public class KeyGenerateAspect {
 	
-	private ExpressionParser parser = new SpelExpressionParser();
-	
-	@Autowired(required=false)
-	private List<KeyGenerateStrategy> listStrategy = Collections.emptyList();
-	
-	private Map<String,KeyGenerateStrategy> mapStrategy;
-	
-	@PostConstruct
-	private void init(){
-		mapStrategy = new HashMap<>(listStrategy.size());
-		for(KeyGenerateStrategy strategy:listStrategy){
-			KeyGenerateStrategy orign = mapStrategy.put(strategy.getStrategyName(), strategy);
-			if(orign != null){
-				throw new RuntimeException("same name strategy exsist!");
-			}
-		}
-		
-	}
-	
+	@Autowired
+	private SpElHelper spElHelper;
 	
 	@Around("@annotation(keyInject)")
 	public Object around(ProceedingJoinPoint jp,KeyInject keyInject) throws Throwable{
@@ -114,14 +87,13 @@ public class KeyGenerateAspect {
 	private void setGeneratedKeyValues(LinkedHashMap<String, Object> mapArgs, Object[] generatedKeyValues,
 			String[] keyEls) {
 		for(int i = 0; i < keyEls.length; i++ ){
-			Expression expression = getExpression(keyEls[i]);
-			expression.setValue(mapArgs, generatedKeyValues[i]);
+			spElHelper.setValue(keyEls[i], mapArgs, generatedKeyValues[i]);
 		}
 	}
 
 
 	private Object[] generateKeys(String strategyStr,Object[] metaData) {
-		KeyGenerateStrategy strategy = mapStrategy.get(strategyStr);
+		KeyGenerateStrategy strategy = spElHelper.getValue(strategyStr);
 		if(strategy == null){
 			throw new RuntimeException("can not find specifc key generate strategy:" + strategyStr);
 		}
@@ -133,23 +105,10 @@ public class KeyGenerateAspect {
 	private Object[] getElsValues(String[] keyEls, LinkedHashMap<String, Object> mapArgs) {
 		Object[] result = new Object[keyEls.length];
 		for(int i = 0; i < keyEls.length; i++){
-			Expression exp = getExpression(keyEls[i]);
-			result[i] = exp.getValue(mapArgs);
+			result[i] = spElHelper.getValue(keyEls[i], mapArgs);
 		}
 		return result;
 	}
-
-
-	private ConcurrentHashMap<String,Expression> mapExpression = new ConcurrentHashMap<>();
-	private Expression getExpression(String expressionStr) {
-		Expression expression = mapExpression.get(expressionStr);
-		if(expression == null){
-			expression = parser.parseExpression(expressionStr);
-			mapExpression.put(expressionStr, expression);
-		} 
-		return expression;
-	}
-
 
 	private LinkedHashMap<String, Object> getArgsLinkedHashMap(String[] parameterNames, Object[] args) {
 		

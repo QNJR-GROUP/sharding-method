@@ -1,17 +1,13 @@
 package org.easydevelop.aggregation.aspect;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -20,6 +16,7 @@ import org.aspectj.lang.annotation.Aspect;
 import org.easydevelop.aggregation.annotation.Aggregation;
 import org.easydevelop.aggregation.annotation.AggregationMethod;
 import org.easydevelop.aggregation.strategy.AggregationStrategy;
+import org.easydevelop.common.SpElHelper;
 import org.easydevelop.sharding.ShardingRoutingDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,26 +35,13 @@ public class AggregationAspect {
 	@Value("${sharding.method.aggregation.timeout.seconds:10}")
 	private int timeout;
 	
-	@Autowired(required = false)
-	private List<AggregationStrategy> listStrategy = Collections.emptyList();;
-	
 	@Autowired
 	private ShardingRoutingDataSource routingDataSource;
 	
-	private Map<String,AggregationStrategy> mapStrategy;
+	@Autowired
+	private SpElHelper spElHelper;
 	
-	@PostConstruct
-	private void init(){
-		mapStrategy = new HashMap<>(listStrategy.size());
-		for(AggregationStrategy strategy:listStrategy){
-			AggregationStrategy orign = mapStrategy.put(strategy.getStrategyName(), strategy);
-			if(orign != null){
-				throw new RuntimeException("same name AggregationStrategy exsist!");
-			}
-		}
-	}
-	
-	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Around("@annotation(aggregationMethod)")
 	public Object around(ProceedingJoinPoint jp,AggregationMethod aggregationMethod) throws Throwable{
 		
@@ -107,17 +91,18 @@ public class AggregationAspect {
 		
 		//get executed result
 		List<Future<Object>> invokeAll = executor.invokeAll(listCallable, timeout, TimeUnit.SECONDS);
-		List<Object> subResults = new ArrayList<>(invokeAll.size());
-		for(Future<Object> future:invokeAll){
-			subResults.add(future.get());
-		}
 		
 		//aggregation
-		AggregationStrategy aggregationStrategy = mapStrategy.get(strategy);
+		AggregationStrategy aggregationStrategy = getStrategy(strategy);
 		if(aggregationStrategy == null){
 			throw new RuntimeException("can not find specified aggregationStrategy:" + strategy);
 		}
-		return aggregationStrategy.aggregation(subResults);
+		return aggregationStrategy.aggregation(invokeAll);
+	}
+
+	@SuppressWarnings("rawtypes")
+	private AggregationStrategy getStrategy(String strategy) {
+		return spElHelper.getValue(strategy);
 	}
 	
 	private String getDsSetKey(AggregationMethod aggregationMethod, Aggregation aggregation) {

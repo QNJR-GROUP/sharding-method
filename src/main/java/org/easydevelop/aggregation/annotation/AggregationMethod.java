@@ -11,7 +11,10 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface AggregationMethod {
-	
+	/**
+	 * SpEl referent to a instance that implements AggregationStrategy
+	 * @return
+	 */
 	String strategy() default "";
 
 	String dsSet() default "";

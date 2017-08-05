@@ -1,9 +1,10 @@
-package org.easydevelop.sharding;
+package org.easydevelop.select;
 
 import org.easydevelop.business.TestApplicationConfig;
 import org.easydevelop.business.domain.UserOrder;
-import org.easydevelop.sharding.annotation.Sharding;
-import org.easydevelop.sharding.annotation.ShardingMethod;
+import org.easydevelop.select.annotation.SelectDataSource;
+import org.easydevelop.sharding.ShardingRoutingDataSource;
+import org.easydevelop.sharding.annotation.ShardingContext;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,19 +24,19 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Configuration
 public class ShardingTest {
 	
-	@Sharding(defaultDsSet="orderSet",defaultKeyEls="[order].userId",defaultStrategy=TestApplicationConfig.BY_USER_ID_MOD)
+	@ShardingContext(dataSourceSet="orderSet",shardingKeyEls="[order].userId",shardingStrategy=TestApplicationConfig.BY_USER_ID_MOD)
 	@Service
 	public static class ShardingServiceInstance{
 		
 		@Autowired
 		private ShardingRoutingDataSource routingDataSource;
 		
-		@ShardingMethod
+		@SelectDataSource
 		public int saveOrderWithUserId5(UserOrder order){
 			return routingDataSource.getCurrentLookupDsSequence();
 		}
 		
-		@ShardingMethod
+		@SelectDataSource
 		public int saveOrderWithUserId6(UserOrder order){
 			return routingDataSource.getCurrentLookupDsSequence();
 		}

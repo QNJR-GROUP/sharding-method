@@ -1,4 +1,4 @@
-package org.easydevelop.aggregation.strategy;
+package org.easydevelop.mapreduce.strategy;
 
 import java.util.List;
 import java.util.concurrent.Future;
@@ -11,6 +11,6 @@ import java.util.concurrent.Future;
  * @param <F> for final aggregation result class
  * @param <S> for sharding result class
  */
-public interface AggregationStrategy<F,S> {
-	F aggregation(List<Future<S>> subFutrueList);
+public interface ReduceStrategy<F,S> {
+	F reduce(List<Future<S>> shardingFutrueList);
 }

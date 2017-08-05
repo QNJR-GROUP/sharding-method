@@ -9,12 +9,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.sql.DataSource;
 
 import org.easydevelop.EnableShardingMethod;
-import org.easydevelop.aggregation.strategy.AggregationStrategy;
 import org.easydevelop.business.domain.User;
-import org.easydevelop.keygenerator.strategy.KeyGenerateStrategy;
+import org.easydevelop.generateid.strategy.KeyGenerateStrategy;
+import org.easydevelop.mapreduce.strategy.ReduceStrategy;
+import org.easydevelop.select.strategy.SelectDataSourceStrategy;
 import org.easydevelop.sharding.DataSourceSet;
 import org.easydevelop.sharding.ShardingRoutingDataSource;
-import org.easydevelop.sharding.strategy.ShardingStrategy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -71,8 +71,8 @@ public class TestApplicationConfig {
 	}
 	
 	@Bean
-	public ShardingStrategy modUserId(){
-		return new ShardingStrategy() {
+	public SelectDataSourceStrategy modUserId(){
+		return new SelectDataSourceStrategy() {
 
 			@Override
 			public int select(Object[] shardingMetadata, int datasourceSize) {
@@ -97,17 +97,16 @@ public class TestApplicationConfig {
 	}
 	
 	@Bean
-	public AggregationStrategy<List<User>,List<User>> aggOrderByUserId(){
-		return new AggregationStrategy<List<User>,List<User>>() {
+	public ReduceStrategy<List<User>,List<User>> aggOrderByUserId(){
+		return new ReduceStrategy<List<User>,List<User>>() {
 
 			@Override
-			public List<User> aggregation(List<Future<List<User>>> subFutrueList) {
+			public List<User> reduce(List<Future<List<User>>> subFutrueList) {
 				
 				List<User> result = new ArrayList<>();
-				subFutrueList.forEach(future->{
+				subFutrueList.forEach(listFuture->{
 					try {
-						List<User> list = future.get();
-						result.addAll(list);
+						result.addAll(listFuture.get());
 					} catch (Exception e) {
 						throw new RuntimeException(e);
 					}
@@ -122,20 +121,18 @@ public class TestApplicationConfig {
 	
 	
 	@Bean
-	public AggregationStrategy<Integer,Integer> aggUpdateCountAdd(){
-		return new AggregationStrategy<Integer,Integer>() {
+	public ReduceStrategy<Integer,Integer> aggUpdateCountAdd(){
+		return new ReduceStrategy<Integer,Integer>() {
 
 			@Override
-			public Integer aggregation(List<Future<Integer>> subFutrueList) {
-				
-				AtomicInteger count = new AtomicInteger(0);
-				subFutrueList.forEach(future->{try {
-					Integer integer = future.get();
-					count.addAndGet(integer);
-				} catch (InterruptedException | ExecutionException e) {
-					throw new RuntimeException(e);
-				}});
-				return count.get();
+			public Integer reduce(List<Future<Integer>> subFutrueList) {
+				return subFutrueList.stream().map(future -> {
+					try {
+						return future.get();
+					} catch (InterruptedException | ExecutionException e) {
+						throw new RuntimeException(e);
+					}
+				}).mapToInt(i->i).sum();
 			}
 		};
 		

@@ -2,10 +2,9 @@ package org.easydevelop.business.dao;
 
 import java.util.List;
 
-import org.easydevelop.aggregation.annotation.Aggregation;
-import org.easydevelop.aggregation.annotation.AggregationMethod;
 import org.easydevelop.business.TestApplicationConfig;
 import org.easydevelop.business.domain.User;
+import org.easydevelop.mapreduce.annotation.MapReduce;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -17,7 +16,6 @@ import org.springframework.util.Assert;
 * @author xudeyou 
 */
 @Component
-@Aggregation(defaultDsSet="orderSet")
 public class UserDaoImpl {
 	
 	@Autowired
@@ -44,13 +42,13 @@ public class UserDaoImpl {
 	}
 	
 	@Transactional
-	@AggregationMethod(strategy=TestApplicationConfig.AGGREGATION_USER_ORDER_BY_USER_ID)
+	@MapReduce(reduceStrategy=TestApplicationConfig.AGGREGATION_USER_ORDER_BY_USER_ID)
 	public List<User> findAllUsers(){
 		return jdbcTemplate.query("SELECT * FROM user", rowMapper);
 	}
 	
 	@Transactional
-	@AggregationMethod(strategy=TestApplicationConfig.UPDATE_COUNT_ADD)
+	@MapReduce(reduceStrategy=TestApplicationConfig.UPDATE_COUNT_ADD)
 	public int deleteAllUsers(){
 		int update = jdbcTemplate.update("delete from user");
 		System.out.println(update);

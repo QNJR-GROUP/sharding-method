@@ -1,4 +1,4 @@
-package org.easydevelop.keygenerator.strategy;
+package org.easydevelop.generateid.strategy;
 /** 
 * @author xudeyou 
 */

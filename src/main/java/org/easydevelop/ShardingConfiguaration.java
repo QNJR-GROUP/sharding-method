@@ -1,8 +1,9 @@
 package org.easydevelop;
 
-import org.easydevelop.aggregation.aspect.AggregationAspect;
 import org.easydevelop.common.SpElHelper;
-import org.easydevelop.keygenerator.aspect.KeyGenerateAspect;
+import org.easydevelop.generateid.aspect.KeyGenerateAspect;
+import org.easydevelop.mapreduce.aspect.MapReduceAspect;
+import org.easydevelop.select.aspect.SelectDataSourceAspect;
 import org.easydevelop.sharding.ShardingRoutingDataSource;
 import org.easydevelop.sharding.aspect.ShardingAspect;
 import org.springframework.context.annotation.Bean;
@@ -22,23 +23,28 @@ public class ShardingConfiguaration {
 	}
 	
 	@Bean
-	public ShardingRoutingDataSource routingDataSource(){
+	public ShardingRoutingDataSource shardingRoutingDataSource(){
 		return new ShardingRoutingDataSource();
 	}
 	
 	@Bean
-	public ShardingAspect shardingAspect(){
-		return new ShardingAspect();
+	public SelectDataSourceAspect selectDataSourceAspect(){
+		return new SelectDataSourceAspect();
 	}
 	
 	@Bean
-	public AggregationAspect aggregationAspect(){
-		return new AggregationAspect();
+	public MapReduceAspect mapReduceAspect(){
+		return new MapReduceAspect();
 	}
 	
 	@Bean
 	public SpElHelper spElHelper(){
 		return new SpElHelper();
+	}
+	
+	@Bean
+	public ShardingAspect shardingAspect(){
+		return new ShardingAspect();
 	}
 	
 }

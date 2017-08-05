@@ -1,9 +1,9 @@
-package org.easydevelop.sharding.strategy;
+package org.easydevelop.select.strategy;
 
 /** 
 * @author xudeyou 
 */
-public interface ShardingStrategy {
+public interface SelectDataSourceStrategy {
 	
 	int select(Object[] shardingMetadata,int datasourceSize);
 

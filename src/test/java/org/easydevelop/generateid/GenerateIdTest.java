@@ -1,13 +1,13 @@
-package org.easydevelop.keygenerator;
+package org.easydevelop.generateid;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.easydevelop.business.TestApplicationConfig;
 import org.easydevelop.business.domain.User;
 import org.easydevelop.business.domain.UserOrder;
-import org.easydevelop.keygenerator.annotation.KeyGenerate;
-import org.easydevelop.keygenerator.annotation.KeyInject;
-import org.easydevelop.keygenerator.strategy.KeyGenerateStrategy;
+import org.easydevelop.generateid.annotation.GenerateId;
+import org.easydevelop.generateid.strategy.KeyGenerateStrategy;
+import org.easydevelop.sharding.annotation.ShardingContext;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,40 +23,40 @@ import org.springframework.test.context.junit4.SpringRunner;
 * @author xudeyou 
 */
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes={KeyGenerateTest.class,TestApplicationConfig.class})
+@SpringBootTest(classes={GenerateIdTest.class,TestApplicationConfig.class})
 @Configuration
-public class KeyGenerateTest {
+public class GenerateIdTest {
 	
-	@KeyGenerate(defaultKeyEls={"[order].orderId"},defaultStrategy="@intGenerator")
+	@ShardingContext(generateIdEls={"[order].orderId"},generateIdStrategy="@intGenerator")
 	@Service
 	public static class KeyTest{
 		
 		
-		@KeyInject
+		@GenerateId
 		public Integer parameterFieldInject(UserOrder order){
 			return order.getOrderId();
 		}
 		
-		@KeyInject(keyEls="[orderId]")
+		@GenerateId(keyEls="[orderId]")
 		public Integer parameterReplace(String abc,Integer orderId){
 			return orderId;
 		}
 		
-		@KeyInject(keyEls="[testUser].name",strategy="@stringGenerator")
+		@GenerateId(keyEls="[testUser].name",strategy="@stringGenerator")
 		public String strParameterFieldInject(User testUser){
 			return testUser.getName();
 		}
 		
-		@KeyInject(keyEls={"[testUser].userId","[testUser].name"},strategy="@multiFieldGenerator")
+		@GenerateId(keyEls={"[testUser].userId","[testUser].name"},strategy="@multiFieldGenerator")
 		public void multiParameterFieldInject(User testUser){
 		}
 		
-		@KeyInject(allowCallerDefinedKeyValue=1)
+		@GenerateId(allowCallerDefinedKeyValue=1)
 		public Integer alloUserDefinedKeyTest(UserOrder order){
 			return order.getOrderId();
 		}
 		
-		@KeyInject(keyEls="[testUser].name",strategy="@stringGenerator",strategyMetadataEls="[testUser].userId")
+		@GenerateId(keyEls="[testUser].name",strategy="@stringGenerator",strategyMetadataEls="[testUser].userId")
 		public String metadataCheck(User testUser){
 			return testUser.getName();
 		}

@@ -1,4 +1,4 @@
-package org.easydevelop.keygenerator.annotation;
+package org.easydevelop.generateid.annotation;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface KeyInject {
+public @interface GenerateId {
 
 	/**
 	 * SpEL expressions

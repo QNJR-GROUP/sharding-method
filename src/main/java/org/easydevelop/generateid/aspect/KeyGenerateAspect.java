@@ -1,4 +1,4 @@
-package org.easydevelop.keygenerator.aspect;
+package org.easydevelop.generateid.aspect;
 
 import java.util.LinkedHashMap;
 
@@ -7,9 +7,10 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.easydevelop.common.SpElHelper;
-import org.easydevelop.keygenerator.annotation.KeyGenerate;
-import org.easydevelop.keygenerator.annotation.KeyInject;
-import org.easydevelop.keygenerator.strategy.KeyGenerateStrategy;
+import org.easydevelop.generateid.annotation.GenerateId;
+import org.easydevelop.generateid.strategy.KeyGenerateStrategy;
+import org.easydevelop.sharding.annotation.ShardingContext;
+import org.easydevelop.sharding.aspect.ShardingAspect;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.util.Assert;
@@ -26,17 +27,16 @@ public class KeyGenerateAspect {
 	private SpElHelper spElHelper;
 	
 	@Around("@annotation(keyInject)")
-	public Object around(ProceedingJoinPoint jp,KeyInject keyInject) throws Throwable{
+	public Object around(ProceedingJoinPoint jp,GenerateId keyInject) throws Throwable{
 		
 		//get KeyGenerate annotation from method's class
-		Class<?> targetClazz = jp.getTarget().getClass();
-		KeyGenerate keyGenerator = targetClazz.getAnnotation(KeyGenerate.class);
+		ShardingContext keyGenerator = ShardingAspect.getShardingContext();
 		if(keyGenerator == null){
 			throw new RuntimeException("Class annotation config error,can not find KeyGenerator!");
 		}
 		
 		//get configurations
-		String[] keyEls = getFinalKeyNames(keyInject, keyGenerator);
+		String[] keyEls = getFinalIdNames(keyInject, keyGenerator);
 		String strategy = getFinalStrategy(keyInject, keyGenerator);
 		boolean allowUserDefindKeyValue = getAllowUserDefindKeyValue(keyInject, keyGenerator);
 		String[] strategyMetadataEls = getStrategyMetadataEls(keyInject, keyGenerator);
@@ -75,10 +75,10 @@ public class KeyGenerateAspect {
 	}
 
 	
-	private String[] getStrategyMetadataEls(KeyInject keyInject, KeyGenerate keyGenerator) {
+	private String[] getStrategyMetadataEls(GenerateId keyInject, ShardingContext shardingContext) {
 		String[] strategyMetadataEls = keyInject.strategyMetadataEls();
 		if(strategyMetadataEls.length == 0){
-			strategyMetadataEls = keyGenerator.strategyMetadataEls();
+			strategyMetadataEls = shardingContext.generateIdMetadataEls();
 		}
 		return strategyMetadataEls;
 	}
@@ -125,10 +125,10 @@ public class KeyGenerateAspect {
 
 
 
-	private boolean getAllowUserDefindKeyValue(KeyInject keyInject, KeyGenerate keyGenerator) {
+	private boolean getAllowUserDefindKeyValue(GenerateId keyInject, ShardingContext shardingContext) {
 		int allow = keyInject.allowCallerDefinedKeyValue();
 		if(allow == 0){
-			allow = keyGenerator.allowCallerDefinedKeyValue();
+			allow = shardingContext.generateIdByCaller();
 			if(allow == 0){
 				throw new RuntimeException("Class annotation config error,can not find key generate keyNames!");
 			}
@@ -136,10 +136,10 @@ public class KeyGenerateAspect {
 		return allow == -1?false:true;
 	}
 
-	private String[] getFinalKeyNames(KeyInject keyInject, KeyGenerate keyGenerator) {
+	private String[] getFinalIdNames(GenerateId keyInject, ShardingContext shardingContext) {
 		String[] keyNames = keyInject.keyEls();
 		if(keyNames.length == 0){
-			keyNames = keyGenerator.defaultKeyEls();
+			keyNames = shardingContext.generateIdEls();
 			if(keyNames.length == 0){
 				throw new RuntimeException("Class annotation config error,can not find key generate keyNames!");
 			}else{
@@ -153,10 +153,10 @@ public class KeyGenerateAspect {
 		return keyNames;
 	}
 	
-	private String getFinalStrategy(KeyInject keyInject, KeyGenerate keyGenerator) {
+	private String getFinalStrategy(GenerateId keyInject, ShardingContext shardingContext) {
 		String strategy = keyInject.strategy();
 		if(StringUtils.isEmpty(strategy)){
-			strategy = keyGenerator.defaultStrategy();
+			strategy = shardingContext.generateIdStrategy();
 			if(StringUtils.isEmpty(strategy)){
 				throw new RuntimeException("Class annotation config error,can not find key generate strategy!");
 			}

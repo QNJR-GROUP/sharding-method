@@ -5,9 +5,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import org.easydevelop.business.TestApplicationConfig;
+import org.easydevelop.business.domain.UserOrder;
 import org.easydevelop.mapreduce.annotation.MapReduce;
 import org.easydevelop.mapreduce.aspect.ReduceResultHolder;
 import org.easydevelop.mapreduce.strategy.ReduceStrategy;
+import org.easydevelop.sharding.ShardingRoutingDataSource;
 import org.easydevelop.sharding.annotation.ShardingContext;
 import org.junit.Assert;
 import org.junit.Test;
@@ -18,6 +20,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Service;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.transaction.annotation.Transactional;
 
 
 
@@ -29,9 +32,13 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Configuration
 public class MapReduceTest {
 	
+	
 	@Service("agTest")
 	@ShardingContext(dataSourceSet="orderSet")
 	public static class AgTest{
+		
+		@Autowired
+		private ShardingRoutingDataSource routingDataSource;
 		
 		@Bean
 		public ReduceStrategy<Integer, Integer> agNumberAdd(){
@@ -65,6 +72,12 @@ public class MapReduceTest {
 			resultHolder.setShardingResult(value);
 		}
 		
+		@Transactional(readOnly=true)
+		@MapReduce(reduceStrategy="@agNumberAdd")
+		public int readOnlyTest(){
+			return routingDataSource.getCurrentSlavePosition();
+		}
+		
 	}
 	
 	
@@ -88,6 +101,14 @@ public class MapReduceTest {
 		ReduceResultHolder<Integer, Integer> resultHolder = new ReduceResultHolder<>();
 		agTest.agTest3(3,resultHolder);
 		Assert.assertTrue(resultHolder.getResult() == 6);
+	}
+	
+	@Test
+	public void readOnlyTest(){
+		UserOrder order = new UserOrder();
+		order.setUserId(6);
+		Integer shardingDatasourceSeq = agTest.readOnlyTest();
+		Assert.assertTrue(shardingDatasourceSeq != null && shardingDatasourceSeq.equals(0));
 	}
 	
 }

@@ -1,8 +1,10 @@
 package org.easydevelop;
 
 import org.easydevelop.common.SpElHelper;
+import org.easydevelop.common.TransactionStatusHelper;
 import org.easydevelop.generateid.aspect.KeyGenerateAspect;
 import org.easydevelop.mapreduce.aspect.MapReduceAspect;
+import org.easydevelop.readonly.RoundRobinReadonlyDsSelectStrategy;
 import org.easydevelop.select.aspect.SelectDataSourceAspect;
 import org.easydevelop.sharding.ShardingRoutingDataSource;
 import org.easydevelop.sharding.aspect.ShardingAspect;
@@ -45,6 +47,16 @@ public class ShardingConfiguaration {
 	@Bean
 	public ShardingAspect shardingAspect(){
 		return new ShardingAspect();
+	}
+	
+	@Bean
+	public TransactionStatusHelper transactionStatusHelper(){
+		return new TransactionStatusHelper();
+	}
+	
+	@Bean
+	public RoundRobinReadonlyDsSelectStrategy readOnlyDsSelectStrategy(){
+		return new RoundRobinReadonlyDsSelectStrategy();
 	}
 	
 }

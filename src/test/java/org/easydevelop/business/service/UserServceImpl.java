@@ -47,6 +47,16 @@ public class UserServceImpl {
 		return userDao.findUser(userId);
 	}
 	
+	@Transactional(readOnly=true)
+	@SelectDataSource(keyNameEls="[userId]",forceMaster=true)
+	public User findUserByMaster(int userId){
+		return userDao.findUser(userId);
+	}
+	
+	public List<User> findAllUsersByMaster(){
+		return userDao.findAllUsersByMaster();
+	}
+	
 	public List<User> findAllUsers(){
 		return userDao.findAllUsers();
 	}

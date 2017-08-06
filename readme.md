@@ -34,7 +34,10 @@
 
 而且这些范式对于很多人来说不一定能够充分理解执行的含义，以至于忽略了。
 
-因此我的想法很简单，就是将这些范式做成框架，把Sharding后与原生单机数据库不一致的关注点摆上台面，让Service层感知到差异，并以正确适当的方式处理掉这些差异。
+由上面最重要的一点“所有事务（包括读、写）都不能跨库”决定，**一个合理设计的代码里绝大多数的业务代码中数据库访问都不会跨分区，核心业务代码都在同一分区内进行。**
+因此，我们大多数情况下，需要的只是一个协助我们便捷选择对应分片的一个框架。
+
+因此我的想法很简单，提供一个方便透明选择分片、并辅以自动生成ID的框架。对于需要访问多个分片的少数业务，框架提供手段，便捷地获取所有分片数据库的数据，并由用户自行归并得出所需结果（简单的归并框架可以自动进行）。
 
 # 基本使用方法
 
@@ -43,7 +46,7 @@
 Service层
 
 	@Service
-	@ShardingContext(dataSourceSet="orderSet",shardingKeyEls="[	user].userId",shardingStrategy="@modUserId",generateIdStrategy="@snowflaker",generateIdEls="[user].userId")
+	@ShardingContext(dataSourceSet="orderSet",shardingKeyEls="[user].userId",shardingStrategy="@modUserId",generateIdStrategy="@snowflaker",generateIdEls="[user].userId")
 	public class UserServceImpl {
 		
 		@Autowired
@@ -140,7 +143,7 @@ Service层
 * 能完美实现读写分离
     * 基于SQL层实现的Sharding引入读写分离后，在上层Service感知的事务里，存在混乱的隔离级别的问题，其最多实现RC级别读写分离(若不在Service层介入相关辅助代码的话)，而Service层Sharding在Service开始前就能确定该事务是读事务，整个读事务都在一个读库中完成，隔离级别与数据库一致
 * 无额外维护DBProxy可用性的负担
-* 相对于复杂的SQL解析，实现简单，BUG存在可能性更低，学习成本及扩展定制成本也低
+* 相对于复杂的SQL解析，实现简单，相信花个一天就能看完所有代码，整个框架了如指掌
 * 无SQL解析成本，性能更高
 * 隔离级别及事务原子性等特征与使用的数据库一致，无额外学习负担，易于写出正确的程序
     * 框架限制了所有事务都在单库进行
@@ -153,10 +156,13 @@ Service层
 * 跨库查询需要自行进行结果聚合
     * 是劣势也是优势
     * 劣势：需要完成额外的聚合代码
-    * 优势：但其能能更好的调优,使用JDK8的Stream及Lambada表达式，能很好的处理
+    * 优势：但其能能更好的调优,使用JDK8的Stream及Lambada表达式，能像写SQL一样简单的完成相关集合处理
 * 跨库事务需要自行保证
     * 是劣势也是优势
     * 劣势：需要额外自行实现跨库事务
     * 优势：目前所有的Sharding框架实现的跨库事务都有缺陷或者说限制，如Sharding-JDBC,Mycat等提供的跨库事务都并非严格意义的ACID，A可能被打破，I也与原生定义的不一样，程序员不熟悉时就很容易写出不可靠的代码。因此自行控制分布式事务，采用显式的事务控制或许是更好的选择。可参考使用本人写的另外一个框架EasyTransaction
 * 无法实现单库分表
 	* 其实，单库分表并不是必须的，这可以用数据原生的表分区来实现，性能一样，使用更便捷
+
+# 具体使用方法
+更具体使用案例请参考 测试Package：org.easydevelop.business里的案例

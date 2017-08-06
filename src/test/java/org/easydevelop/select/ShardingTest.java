@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Service;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.transaction.annotation.Transactional;
 
 
 
@@ -41,6 +42,12 @@ public class ShardingTest {
 			return routingDataSource.getCurrentLookupDsSequence();
 		}
 		
+		@SelectDataSource
+		@Transactional(readOnly=true)
+		public int readOnlyTest(UserOrder order){
+			return routingDataSource.getCurrentSlavePosition();
+		}
+		
 	}
 	
 
@@ -62,6 +69,14 @@ public class ShardingTest {
 		UserOrder order = new UserOrder();
 		order.setUserId(6);
 		Integer shardingDatasourceSeq = shardingServiceInstance.saveOrderWithUserId6(order);
+		Assert.assertTrue(shardingDatasourceSeq != null && shardingDatasourceSeq.equals(0));
+	}
+	
+	@Test
+	public void readOnlyTest(){
+		UserOrder order = new UserOrder();
+		order.setUserId(6);
+		Integer shardingDatasourceSeq = shardingServiceInstance.readOnlyTest(order);
 		Assert.assertTrue(shardingDatasourceSeq != null && shardingDatasourceSeq.equals(0));
 	}
 }

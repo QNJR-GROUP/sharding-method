@@ -1,6 +1,7 @@
 package org.easydevelop.business;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -44,18 +45,31 @@ public class TestApplicationConfig {
 		MysqlDataSource ds1 = new MysqlDataSource();
 		ds1.setURL("jdbc:mysql://192.168.92.134:3306/sharding_test_0");
 		ds1.setUser("root");
-		ds1.setPassword("xdy1117");
+		ds1.setPassword("abcde");
+		
+		MysqlDataSource ds1_s0 = new MysqlDataSource();
+		ds1_s0.setURL("jdbc:mysql://192.168.92.134:3306/sharding_test_0_s0");
+		ds1_s0.setUser("root");
+		ds1_s0.setPassword("abcde");
+		
 		
 		MysqlDataSource ds2 = new MysqlDataSource();
 		ds2.setURL("jdbc:mysql://192.168.92.134:3306/sharding_test_1");
 		ds2.setUser("root");
-		ds2.setPassword("xdy1117");
+		ds2.setPassword("abcde");
+		
+		MysqlDataSource ds2_s0 = new MysqlDataSource();
+		ds2_s0.setURL("jdbc:mysql://192.168.92.134:3306/sharding_test_1_s0");
+		ds2_s0.setUser("root");
+		ds2_s0.setPassword("abcde");
 		
 		ArrayList<DataSource> arrayList = new ArrayList<DataSource>(2);
 		arrayList.add(ds1);
 		arrayList.add(ds2);
 		
-		DataSourceSet dataSourceSet = new DataSourceSet("orderSet",arrayList);
+		List<List<DataSource>> slaveList = Arrays.asList(Arrays.asList(ds1_s0),Arrays.asList(ds2_s0));
+		
+		DataSourceSet dataSourceSet = new DataSourceSet("orderSet",arrayList,slaveList);
 		return dataSourceSet;
 	}
 	

@@ -1,17 +1,17 @@
 package org.easydevelop.select.aspect;
 
 import java.util.LinkedHashMap;
-import java.util.List;
-
-import javax.sql.DataSource;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.easydevelop.common.SpElHelper;
+import org.easydevelop.common.TransactionStatusHelper;
+import org.easydevelop.readonly.ReadOnlyDsSelectStrategy;
 import org.easydevelop.select.annotation.SelectDataSource;
 import org.easydevelop.select.strategy.SelectDataSourceStrategy;
+import org.easydevelop.sharding.DataSourceSet;
 import org.easydevelop.sharding.ShardingRoutingDataSource;
 import org.easydevelop.sharding.annotation.ShardingContext;
 import org.easydevelop.sharding.aspect.ShardingAspect;
@@ -34,8 +34,15 @@ public class SelectDataSourceAspect {
 	@Autowired
 	private SpElHelper spElHelper;
 	
-	@Around("@annotation(shardingMethod)")
-	public Object around(ProceedingJoinPoint jp,SelectDataSource shardingMethod) throws Throwable{
+	@Autowired
+	private TransactionStatusHelper transactionStatusHelper;
+	
+	
+	@Autowired
+	private ReadOnlyDsSelectStrategy readOnlySelectStrategy;
+	
+	@Around("@annotation(selectDataSource)")
+	public Object around(ProceedingJoinPoint jp,SelectDataSource selectDataSource) throws Throwable{
 		
 		ShardingContext sharding = ShardingAspect.getShardingContext();
 		if(sharding == null){
@@ -43,9 +50,10 @@ public class SelectDataSourceAspect {
 		}
 		
 		//get configurations
-		String[] keyEls = getFinalKeyEls(shardingMethod, sharding);
-		String strategy = getFinalStrategy(shardingMethod, sharding);
-		String dsSetKey = getDsSetKey(shardingMethod, sharding);
+		String[] keyEls = getFinalKeyEls(selectDataSource, sharding);
+		String strategy = getFinalStrategy(selectDataSource, sharding);
+		String dsSetKey = getDsSetKey(selectDataSource, sharding);
+		boolean forceMaster = selectDataSource.forceMaster();
 		
 		//get parameters based on keyNames
 		MethodSignature signature = (MethodSignature) jp.getSignature();
@@ -55,8 +63,23 @@ public class SelectDataSourceAspect {
 		Object[] keyValues = getElsValues(keyEls,mapArgs);
 		
 		//calculate the sharding dataSource number
-		List<DataSource> dsSet = routingDataSource.getDataSourcesByDsSetName(dsSetKey);
-		int num = selectDataSource(strategy,keyValues,dsSet.size());
+		DataSourceSet dsSet = routingDataSource.getDataSourcesByDsSetName(dsSetKey);
+		int num = selectShardingPartition(strategy,keyValues,dsSet.getMasterDataSources().size());
+		
+		
+		//is transaction readOnly check
+		boolean readonly = false;
+		Boolean checkReadOnly = transactionStatusHelper.isMethodReadOnly(signature.getMethod(), jp.getTarget().getClass());
+		if(checkReadOnly != null){
+			readonly = checkReadOnly;
+		}
+		
+		//select the slave dataSource,if null then use master
+		Integer slaveNumber = null;
+		if(!forceMaster && readonly && dsSet.getSlaveDataSources() != null){
+			int partitionSlaveCount = dsSet.getSlaveDataSources().get(num).size();
+			slaveNumber = readOnlySelectStrategy.select(num, partitionSlaveCount);
+		}
 		
 		//check whether the sharding dataSource already set
 		String currentDsSet = routingDataSource.getCurrentLookupDsSet();
@@ -71,7 +94,7 @@ public class SelectDataSourceAspect {
 		
 		//set the current lookup key
 		if(!ancestorCallExist){
-			routingDataSource.setCurrentLookupKey(dsSetKey, num);
+			routingDataSource.setCurrentLookupKey(dsSetKey, num,slaveNumber);
 		}
 		
 		//call with the transaction
@@ -81,12 +104,13 @@ public class SelectDataSourceAspect {
 			throw e;
 		} finally{
 			if(!ancestorCallExist){
-				routingDataSource.setCurrentLookupKey(null, null);
+				routingDataSource.setCurrentLookupKey(null, null, null);
 			}
 		}
 	}
 
-	private int selectDataSource(String strategyStr,Object[] metaData,int datasourceSize) {
+
+	private int selectShardingPartition(String strategyStr,Object[] metaData,int datasourceSize) {
 		SelectDataSourceStrategy strategy = spElHelper.getValue(strategyStr);
 		if(strategy == null){
 			throw new RuntimeException("can not find specifc Sharding strategy:" + strategyStr);

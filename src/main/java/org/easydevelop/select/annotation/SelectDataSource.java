@@ -39,4 +39,10 @@ public @interface SelectDataSource {
 	 * @return
 	 */
 	String dsSet() default "";
+	
+	/**
+	 * even though it's read-only transaction,use master datasource
+	 * @return
+	 */
+	boolean forceMaster() default false;
 }

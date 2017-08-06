@@ -43,6 +43,12 @@ public class UserDaoImpl {
 	
 	@Transactional
 	@MapReduce(reduceStrategy=TestApplicationConfig.AGGREGATION_USER_ORDER_BY_USER_ID)
+	public List<User> findAllUsersByMaster(){
+		return jdbcTemplate.query("SELECT * FROM user", rowMapper);
+	}
+	
+	@Transactional(readOnly=true)
+	@MapReduce(reduceStrategy=TestApplicationConfig.AGGREGATION_USER_ORDER_BY_USER_ID)
 	public List<User> findAllUsers(){
 		return jdbcTemplate.query("SELECT * FROM user", rowMapper);
 	}

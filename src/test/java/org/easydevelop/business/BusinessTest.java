@@ -28,6 +28,7 @@ public class BusinessTest {
 	@Test
 	public void testBusiness(){
 		
+		//delete master's users
 		int deleteAllUsers = userService.deleteAllUsers();
 		System.out.println(deleteAllUsers);
 		
@@ -48,11 +49,17 @@ public class BusinessTest {
 		user3.setName("user3-new");
 		userService.updateUser(user3);
 		
-		User findUser = userService.findUser(user3.getUserId());
+		User findUser = userService.findUserByMaster(user3.getUserId());
 		Assert.assertTrue(findUser.getName().equals("user3-new"));
 		
-		List<User> findAllUsers = userService.findAllUsers();
+		List<User> findAllUsers = userService.findAllUsersByMaster();
 		Assert.assertTrue(findAllUsers.size() == 2);
+		
+		User readOnlyUser = userService.findUser(1001);
+		Assert.assertTrue(readOnlyUser != null);
+		
+		List<User> readOnlyUsers = userService.findAllUsers();
+		Assert.assertTrue(readOnlyUsers.get(0).getUserId().equals(1000));
 		
 	}
 	

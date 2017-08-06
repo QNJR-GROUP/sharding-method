@@ -27,6 +27,12 @@ public @interface MapReduce {
 	
 	ShardingFailedStrategy shardingFailedStrategy() default ShardingFailedStrategy.NOT_DEFINED;
 	
+	/**
+	 * is read from master only
+	 * @return
+	 */
+	boolean isForceMaster() default false;
+	
 	public static enum ShardingFailedStrategy{
 		RETURN_NULL,
 		THROW_EXCEPTION,

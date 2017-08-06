@@ -10,15 +10,16 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import javax.sql.DataSource;
-
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.easydevelop.common.SpElHelper;
+import org.easydevelop.common.TransactionStatusHelper;
 import org.easydevelop.mapreduce.annotation.MapReduce;
 import org.easydevelop.mapreduce.strategy.ReduceStrategy;
+import org.easydevelop.readonly.ReadOnlyDsSelectStrategy;
+import org.easydevelop.sharding.DataSourceSet;
 import org.easydevelop.sharding.ShardingRoutingDataSource;
 import org.easydevelop.sharding.annotation.ShardingContext;
 import org.easydevelop.sharding.aspect.ShardingAspect;
@@ -43,6 +44,12 @@ public class MapReduceAspect {
 	private ShardingRoutingDataSource routingDataSource;
 	
 	@Autowired
+	private TransactionStatusHelper transactionStatusHelper;
+	
+	@Autowired
+	private ReadOnlyDsSelectStrategy readOnlySelectStrategy;
+	
+	@Autowired
 	private SpElHelper spElHelper;
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
@@ -50,14 +57,15 @@ public class MapReduceAspect {
 	public Object around(ProceedingJoinPoint jp,MapReduce aggregationMethod) throws Throwable{
 		
 		//get Sharding annotation from method's class
-		ShardingContext aggregation = ShardingAspect.getShardingContext();
-		if(aggregation == null){
+		ShardingContext shardingContext = ShardingAspect.getShardingContext();
+		if(shardingContext == null){
 			throw new RuntimeException("Class annotation config error,can not find Sharding Annotation!");
 		}
 		
 		//get configurations
-		String strategy = getFinalStrategy(aggregationMethod, aggregation);
-		String dsSetKey = getDsSetKey(aggregationMethod, aggregation);
+		String strategy = getFinalStrategy(aggregationMethod, shardingContext);
+		String dsSetKey = getDsSetKey(aggregationMethod, shardingContext);
+		boolean forceMaster = aggregationMethod.isForceMaster();
 		
 		//check whether the sharding dataSource already set
 		String currentDsSet = routingDataSource.getCurrentLookupDsSet();
@@ -90,14 +98,15 @@ public class MapReduceAspect {
 		}
 		
 		//generate Callable objects
-		List<DataSource> listDataSource = routingDataSource.getDataSourcesByDsSetName(dsSetKey);
-		List<Future<Object>> listFuture = new ArrayList<>(listDataSource.size());
+		DataSourceSet dsSet = routingDataSource.getDataSourcesByDsSetName(dsSetKey);
+		int partitionCount = dsSet.getMasterDataSources().size();
+		List<Future<Object>> listFuture = new ArrayList<>(partitionCount);
 		final ReduceResultHolder finalHolder = holder;
 		if(finalHolder != null){
-			finalHolder.init(listDataSource.size());
+			finalHolder.init(partitionCount);
 		}
 		
-		for(int i = 0; i < listDataSource.size(); i++){
+		for(int i = 0; i < partitionCount; i++){
 			final int k = i;
 			Callable<Object> callable = new Callable<Object>() {
 				@Override
@@ -105,7 +114,23 @@ public class MapReduceAspect {
 					if(finalHolder != null){
 						finalHolder.setShardingResultPosition(k);
 					}
-					routingDataSource.setCurrentLookupKey(dsSetKey, k);
+					
+					//is transaction readOnly check
+					boolean readonly = false;
+					Boolean checkReadOnly = transactionStatusHelper.isMethodReadOnly(signature.getMethod(), jp.getTarget().getClass());
+					if(checkReadOnly != null){
+						readonly = checkReadOnly;
+					}
+					
+					//select the slave dataSource,if null then use master
+					Integer slaveNumber = null;
+					if(!forceMaster && readonly && dsSet.getSlaveDataSources() != null){
+						int partitionSlaveCount = dsSet.getSlaveDataSources().get(k).size();
+						slaveNumber = readOnlySelectStrategy.select(k, partitionSlaveCount);
+					}
+					
+					
+					routingDataSource.setCurrentLookupKey(dsSetKey, k, slaveNumber);
 					try {
 						Object proceed = jp.proceed();
 						
@@ -119,7 +144,7 @@ public class MapReduceAspect {
 					} catch (Throwable e) {
 						throw new RuntimeException(e);
 					} finally{
-						routingDataSource.setCurrentLookupKey(null, null);
+						routingDataSource.setCurrentLookupKey(null, null, null);
 					}	
 				}
 			};

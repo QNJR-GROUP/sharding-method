@@ -115,7 +115,8 @@ public class TestApplicationConfig {
 		return new ReduceStrategy<List<User>,List<User>>() {
 
 			@Override
-			public List<User> reduce(List<Future<List<User>>> subFutrueList) {
+			public List<User> reduce(List<Future<List<User>>> subFutrueList, Class<List<User>> shardingResultClass,
+					Class<List<User>> reduceResultClass) {
 				
 				List<User> result = new ArrayList<>();
 				subFutrueList.forEach(listFuture->{
@@ -128,6 +129,8 @@ public class TestApplicationConfig {
 				result.sort((first,second)->Integer.compare(first.getUserId(), second.getUserId()));
 				return result;
 			}
+
+
 			
 		};
 		
@@ -139,7 +142,8 @@ public class TestApplicationConfig {
 		return new ReduceStrategy<Integer,Integer>() {
 
 			@Override
-			public Integer reduce(List<Future<Integer>> subFutrueList) {
+			public Integer reduce(List<Future<Integer>> subFutrueList, Class<Integer> shardingResultClass,
+					Class<Integer> reduceResultClass) {
 				return subFutrueList.stream().map(future -> {
 					try {
 						return future.get();

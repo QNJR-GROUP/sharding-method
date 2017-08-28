@@ -25,17 +25,9 @@ public @interface MapReduce {
 
 	String dsSet() default "";
 	
-	ShardingFailedStrategy shardingFailedStrategy() default ShardingFailedStrategy.NOT_DEFINED;
-	
 	/**
 	 * is read from master only
 	 * @return
 	 */
 	boolean isForceMaster() default false;
-	
-	public static enum ShardingFailedStrategy{
-		RETURN_NULL,
-		THROW_EXCEPTION,
-		NOT_DEFINED;
-	}
 }

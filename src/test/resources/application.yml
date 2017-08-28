@@ -1,0 +1,5 @@
+sharding-method:
+  mapreduce:
+    reduce:
+      future:
+        timeout-mills: 0

@@ -8,9 +8,9 @@ import java.util.concurrent.Future;
  * 
  * @author deyou
  *
- * @param <F> for final aggregation result class
+ * @param <R> for final aggregation result class
  * @param <S> for sharding result class
  */
-public interface ReduceStrategy<F,S> {
-	F reduce(List<Future<S>> shardingFutrueList);
+public interface ReduceStrategy<R,S> {
+	R reduce(List<Future<S>> shardingFutrueList,Class<S> shardingResultClass,Class<R> reduceResultClass);
 }

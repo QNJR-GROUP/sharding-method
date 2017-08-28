@@ -53,8 +53,8 @@ public class MapReduceAspect {
 	private SpElHelper spElHelper;
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	@Around("@annotation(aggregationMethod)")
-	public Object around(ProceedingJoinPoint jp,MapReduce aggregationMethod) throws Throwable{
+	@Around("@annotation(mapReduce)")
+	public Object around(ProceedingJoinPoint jp,MapReduce mapReduce) throws Throwable{
 		
 		//get Sharding annotation from method's class
 		ShardingContext shardingContext = ShardingAspect.getShardingContext();
@@ -63,9 +63,9 @@ public class MapReduceAspect {
 		}
 		
 		//get configurations
-		String strategy = getFinalStrategy(aggregationMethod, shardingContext);
-		String dsSetKey = getDsSetKey(aggregationMethod, shardingContext);
-		boolean forceMaster = aggregationMethod.isForceMaster();
+		String strategy = getFinalStrategy(mapReduce, shardingContext);
+		String dsSetKey = getDsSetKey(mapReduce, shardingContext);
+		boolean forceMaster = mapReduce.isForceMaster();
 		
 		//check whether the sharding dataSource already set
 		String currentDsSet = routingDataSource.getCurrentLookupDsSet();
@@ -164,12 +164,23 @@ public class MapReduceAspect {
 		}
 		
 		
-		//get and execute aggregation strategy
-		ReduceStrategy aggregationStrategy = getStrategy(strategy);
-		if(aggregationStrategy == null){
-			throw new RuntimeException("can not find specified aggregationStrategy:" + strategy);
+		//get sharding and reduce result class type 
+		Class<?> shardingResultClass = returnType;
+		Class<?> reduceResultClass = returnType;
+		if(returnByResultHolder){
+			//if not returnByResultHolder, sharding result class will be the same with reduce class
+			//else we get return type by resultHolder
+			shardingResultClass = finalHolder.getShardingResultClass();
+			reduceResultClass = finalHolder.getReduceResultClass();
 		}
-		Object aggregationResult = aggregationStrategy.reduce(listFuture);
+		
+		
+		//get and execute aggregation strategy
+		ReduceStrategy reduceStrategy = getStrategy(strategy);
+		if(reduceStrategy == null){
+			throw new RuntimeException("can not find specified reduceStrategy:" + strategy);
+		}
+		Object aggregationResult = reduceStrategy.reduce(listFuture,shardingResultClass,reduceResultClass);
 		
 		//check the return form
 		if(returnByResultHolder){

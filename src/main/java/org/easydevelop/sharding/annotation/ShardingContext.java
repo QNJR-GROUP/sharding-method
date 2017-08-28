@@ -78,5 +78,5 @@ public @interface ShardingContext {
 	 * SpEl referent to a instance that implements ReduceStrategy
 	 * @return
 	 */
-	String reduceStrategy() default "";
+	String reduceStrategy() default "@defalutReduceStrategy";
 }

@@ -10,6 +10,23 @@ import java.util.List;
 */
 public class ReduceResultHolder<R,S> {
 	
+	private Class<R> reduceResultClass;
+	private Class<S> shardingResultClass;
+	
+	public ReduceResultHolder(Class<R> reduceResultClass, Class<S> shardingResultClass) {
+		super();
+		this.reduceResultClass = reduceResultClass;
+		this.shardingResultClass = shardingResultClass;
+	}
+	
+	public Class<R> getReduceResultClass() {
+		return reduceResultClass;
+	}
+
+	public Class<S> getShardingResultClass() {
+		return shardingResultClass;
+	}
+
 	private ThreadLocal<Integer> shardingResultPosition = new ThreadLocal<>();
 	private ThreadLocal<Boolean> isResultSet = new ThreadLocal<>();
 	
